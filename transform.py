@@ -2,20 +2,66 @@ import json
 import boto3
 from datetime import datetime
 
-#Lambda 2 - Transform function
 
-def transformation():
-    s3 = boto3.resource('s3')
-    bucket = "biproyecto"
-    file = "tweets/CD.json"
+def lambda_handler(event, context):
+    s3 = boto3.client('s3')
 
-    content_object = s3.Object(bucket, file)
+    bucketTop = 'librostop'
+    bucketPopulares = 'librospopulares'
+    bucketTopPopulares = 'librostoppopulares'
 
-    file_content = content_object.get()['Body'].read().decode('utf-8')
+    keyTop = 'librostop.json'
+    keyPopulares = 'librospopulares.json'
+    keyTopPopulares = 'librostoppopulares.json'
 
-    json_content = json.loads(file_content)
-    # x = json_content[1]
+    responseTop = s3.get_object(
+        Bucket=bucketTop,
+        Key=keyTop,
+    )
 
-    list = []
-    list.append(json_content[0])
-    dateApi = json_content[0]
+    responsePopulares = s3.get_object(
+        Bucket=bucketPopulares,
+        Key=keyPopulares,
+    )
+
+    # responseTop = s3.get_object(Bucket=bucketTop, key=keyTop)
+    # responsePopulares = s3.get_object(Bucket=bucketPopulares, key=keyPopulares)
+
+    contentTop = responseTop['Body']
+    contentPopulares = responsePopulares['Body']
+
+    listadoTop = json.loads(contentTop.read())
+    listadoPopulares = json.loads(contentPopulares.read())
+
+    listadoResultante = []
+
+    dateNow = datetime.now()
+
+    dateNow = dateNow.strftime("%m/%d/%Y, %H:%M:%S")
+
+    for libro in listadoTop:
+        for libroP in listadoPopulares:
+            if int(libro['book_id']) == int(libroP['book_id']):
+                infoLibro = {}
+                infoLibro['book_id'] = libro['book_id']
+                infoLibro['winning_category'] = libro['winning_category']
+                infoLibro['name'] = libro['name']
+                infoLibro['anio'] = 2015
+                infoLibro['mes'] = 5
+                infoLibro['api'] = 'HapiBooks'
+                infoLibro[
+                    'endpoint'] = 'Get the Top 15 most popular books in a Month of an Year-Get the Awarded Books of a Year',
+                infoLibro['download_api'] = dateNow
+                listadoResultante.append(infoLibro)
+
+    print('Resultado:', listadoResultante)
+
+    uploadBytesStreamTopPopulares = bytes(json.dumps(listadoResultante).encode('UTF-8'))
+
+    s3.put_object(Body=uploadBytesStreamTopPopulares, Bucket=bucketTopPopulares, Key='librostoppopulares.json')
+
+    print("PUT top populares Success")
+
+    return {
+        'statusCode': 200,
+    }

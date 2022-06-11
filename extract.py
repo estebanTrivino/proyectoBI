@@ -1,10 +1,17 @@
 import json
-
 import requests
-from datetime import datetime
+import boto3  # Libreria necesaria para usar los productos de aws
 
-# Lambda 1 - Extraction Function
-def extraction():
+s3 = boto3.client('s3')  # Se instancia el recurso del s3
+
+
+def lambda_handler(event, context):
+    bucketTop = 'librostop'
+    bucketPopulares = 'librospopulares'
+
+    fileTop = 'librostop.json'
+    filePopulares = 'librospopulares.json'
+
     year = 2021
     month = 3
 
@@ -32,21 +39,17 @@ def extraction():
     listadoPopulares = json.loads(listadoPopulares.text)
     print('Listado Libros Populares', listadoPopulares)
 
-    # Categoria y titulo de los libros más populares en un mes x de un año x que han sido premiados en ese año
-    listadoResultante = []
+    uploadBytesStreamTop = bytes(json.dumps(listadoTop).encode('UTF-8'))
+    uploadBytesStreamPopulares = bytes(json.dumps(listadoPopulares).encode('UTF-8'))
 
-    for libro in listadoTop:
-        for libroP in listadoPopulares:
-            if int(libro['book_id']) == int(libroP['book_id']):
-                infoLibro = {}
-                infoLibro['book_id'] = libro['book_id']
-                infoLibro['winning_category'] = libro['winning_category']
-                infoLibro['name'] = libro['name']
-                infoLibro['anio'] = 2015
-                infoLibro['mes'] = 5
-                infoLibro['api'] = 'HapiBooks'
-                infoLibro['endPoints'] = ['Get the Top 15 most popular books in a Month of an Year',
-                                          'Get the Awarded Books of a Year']
-                infoLibro['fechaConsulta'] = datetime.now()
-                listadoResultante.append(infoLibro)
-    print('Resultado:', listadoResultante)
+    s3.put_object(Body=uploadBytesStreamTop, Bucket=bucketTop, Key=fileTop)
+
+    print('PUT Top Success')
+
+    s3.put_object(Body=uploadBytesStreamPopulares, Bucket=bucketPopulares, Key=filePopulares)
+
+    print('PUT Populares Success')
+
+    return {
+        'statusCode': 200,
+    }
